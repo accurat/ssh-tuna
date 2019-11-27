@@ -1,0 +1,18 @@
+{
+  "name": "ssh-tuna",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "got": "^9.6.0",
+    "node-ssh-forward": "^0.5.1",
+    "open-ssh-tunnel": "^0.3.1",
+    "redbird": "^0.9.1",
+    "reverse-tunnel-ssh": "^1.1.0",
+    "ssh2": "^0.8.6",
+    "tunnel-ssh": "^4.1.4"
+  }
+}
