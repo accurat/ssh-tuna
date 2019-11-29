@@ -5,13 +5,16 @@ import { createServer } from 'http'
 const {
   USER,
   SSH_AUTH_SOCK,
+  SUBDOMAIN = 'maronn',
   SERVER_PORT = 2005,
   TUNNEL_DOMAIN = 'internal.accurat.io',
 } = process.env
 
+const protocol = TUNNEL_DOMAIN === 'localhost' ? 'http' : 'https'
+
 export function tunnelPort(localPort: number, subdomain: string) {
   return got
-    .post(`https://${TUNNEL_DOMAIN}?subdomain=${subdomain}`, { json: true })
+    .post(`${protocol}://${TUNNEL_DOMAIN}?subdomain=${subdomain}`, { json: true })
     .then(res => {
       const { port, error } = res.body
       if (error) throw error
@@ -31,7 +34,7 @@ export function tunnelPort(localPort: number, subdomain: string) {
             agent: SSH_AUTH_SOCK,
             username: USER,
           },
-          () => resolve(`https://${subdomain}.${TUNNEL_DOMAIN}`),
+          () => resolve(`${protocol}://${subdomain}.${TUNNEL_DOMAIN}`),
         )
       })
     })
@@ -39,10 +42,10 @@ export function tunnelPort(localPort: number, subdomain: string) {
 
 createServer((req, res) => {
   res.statusCode = 200
-  res.end('Maronn, everything works!')
+  res.end(`Maronn, everything works here at ${SUBDOMAIN}!`)
 }).listen(SERVER_PORT, () => {
   console.log(`Server running on ${SERVER_PORT}`)
-  tunnelPort(Number(SERVER_PORT), 'maronn').then(url => {
+  tunnelPort(Number(SERVER_PORT), SUBDOMAIN).then(url => {
     console.log(`Also mirrored on ${url}`)
   })
 })
