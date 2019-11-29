@@ -14,7 +14,6 @@
     "dotenv": "^8.2.0",
     "got": "^9.6.0",
     "redbird": "^0.9.1",
-    "reverse-tunnel-ssh": "^1.1.0",
     "ssh2": "^0.8.6"
   },
   "devDependencies": {
