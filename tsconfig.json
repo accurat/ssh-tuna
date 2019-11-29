@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "allowJs": true,
+    "removeComments": true,
+    "resolveJsonModule": true,
+    "lib": ["es7", "es2017"],
+    "types": ["node"]
+  },
+  "files": ["./index.ts", "./client.ts"]
+}

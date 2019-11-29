@@ -1,14 +1,17 @@
-const got = require('got')
-const tunnel = require('reverse-tunnel-ssh')
-const fs = require('fs')
-const os = require('os')
+import * as got from 'got'
+import * as tunnel from 'reverse-tunnel-ssh'
+import * as fs from 'fs'
+import * as os from 'os'
+import { config as dotenvConfig } from 'dotenv'
 
-const DOMAIN = process.env.DOMAIN || 'localhost'
-const SSH_PORT = process.env.SSH_PORT || 2222
+dotenvConfig()
+const { DOMAIN, SSH_PORT, NODE_ENV } = process.env
+
+const protocol = NODE_ENV === 'production' ? 'https' : 'http'
 
 function tunnelPort(localPort, subdomain) {
   return got
-    .get(`http://${DOMAIN}?subdomain=${subdomain}`, { json: true })
+    .post(`${protocol}://${DOMAIN}?subdomain=${subdomain}`, { json: true })
     .then(res => {
       const { port, error } = res.body
       if (error) throw error

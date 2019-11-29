@@ -5,14 +5,23 @@
   "main": "index.js",
   "keywords": [],
   "author": "",
+  "scripts": {
+    "watch": "tsc --watch",
+    "build": "tsc"
+  },
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^8.2.0",
     "got": "^9.6.0",
-    "node-ssh-forward": "^0.5.1",
-    "open-ssh-tunnel": "^0.3.1",
     "redbird": "^0.9.1",
     "reverse-tunnel-ssh": "^1.1.0",
-    "ssh2": "^0.8.6",
-    "tunnel-ssh": "^4.1.4"
+    "ssh2": "^0.8.6"
+  },
+  "devDependencies": {
+    "@types/dotenv": "^8.2.0",
+    "@types/got": "^9.6.9",
+    "@types/node": "^12.12.14",
+    "@types/ssh2": "^0.5.39",
+    "typescript": "^3.7.2"
   }
 }
