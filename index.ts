@@ -37,7 +37,15 @@ for (const file of necessaryFiles) {
 
 dotenvConfig()
 
-const { WEBSERVER_PORT, PROXY_PORT, FIRST_PORT, DOMAIN, NODE_ENV, SSH_PASSPHRASE } = process.env
+const {
+  WEBSERVER_PORT,
+  PROXY_PORT,
+  FIRST_PORT,
+  DOMAIN,
+  NODE_ENV,
+  SSH_PASSPHRASE,
+  SSH_PORT,
+} = process.env
 
 const AUTHORIZED_KEYS = fs
   .readFileSync(`./ssh/authorized_keys`)
@@ -66,7 +74,9 @@ class Server {
   reverseProxy: any
   sshServer: ssh2.Server
 
-  constructor() {
+  constructor() {}
+
+  start = () => {
     this.buildReverseProxy()
     this.allocateWebserver()
     this.startWebserver()
@@ -160,10 +170,11 @@ class Server {
           this.proxies = this.proxies.filter(p => p.port !== existingProxy.port)
         })
       })
-    }).listen(2222, '0.0.0.0', function() {
+    }).listen(Number(SSH_PORT), '0.0.0.0', function() {
       console.log('Listening on port ' + this.address().port)
     })
   }
 }
 
 const serverozzo = new Server()
+serverozzo.start()

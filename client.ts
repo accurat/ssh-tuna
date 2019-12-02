@@ -8,6 +8,7 @@ const {
   SUBDOMAIN = 'maronn',
   SERVER_PORT = 2005,
   TUNNEL_DOMAIN = 'internal.accurat.io',
+  SSH_PORT = 2222,
 } = process.env
 
 const protocol = TUNNEL_DOMAIN === 'localhost' ? 'http' : 'https'
@@ -25,7 +26,7 @@ export function tunnelPort(localPort: number, subdomain: string) {
         return createClient(
           {
             host: TUNNEL_DOMAIN,
-            port: 2222,
+            port: Number(SSH_PORT),
             dstHost: 'localhost',
             dstPort: dstPort,
             srcHost: 'localhost',
