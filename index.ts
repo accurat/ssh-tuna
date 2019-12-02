@@ -4,21 +4,47 @@ import * as url from 'url'
 import * as fs from 'fs'
 import * as ssh2 from 'ssh2'
 import * as net from 'net'
-import * as os from 'os'
 import { config as dotenvConfig } from 'dotenv'
-import { validateSsh, findFirstFreeNumber } from './lib'
+import { validateSsh, findFirstFreeNumber, generateSSHKey, copyFile } from './lib'
 import { Proxy } from './types'
 import { ParsedKey } from 'ssh2-streams'
 
+const necessaryFiles = [
+  {
+    path: '.env',
+    handler: copyFile('.env'),
+    message: 'No dotenv found. Copied .env.example, but probably some values need to be changed',
+  },
+  {
+    path: './ssh/authorized_keys',
+    handler: copyFile('./ssh/authorized_keys'),
+    message:
+      "No authorized_keys file found. Copied authorized_keys.example, but noone will be able to access since it's empty",
+  },
+  {
+    path: './ssh/ssh_host_rsa_key',
+    handler: generateSSHKey,
+    message: 'No ssh_host_rsa_key file found. Generated new ssh_host_rsa_key.',
+  },
+]
+
+for (const file of necessaryFiles) {
+  const exists = fs.existsSync(file.path)
+  if (exists) continue
+  file.handler()
+  console.warn(file.message)
+}
+
 dotenvConfig()
 
-const { WEBSERVER_PORT, PROXY_PORT, FIRST_PORT, DOMAIN, NODE_ENV } = process.env
+const { WEBSERVER_PORT, PROXY_PORT, FIRST_PORT, DOMAIN, NODE_ENV, SSH_PASSPHRASE } = process.env
 
 const AUTHORIZED_KEYS = fs
-  .readFileSync(`${os.homedir()}/.ssh/authorized_keys`)
+  .readFileSync(`./ssh/authorized_keys`)
   .toString()
   .split('\n')
-const HOST_KEYS = fs.readFileSync('/etc/ssh/ssh_host_rsa_key')
+
+const HOST_KEYS = fs.readFileSync('./ssh/ssh_host_rsa_key')
 
 const authorizedKeys = AUTHORIZED_KEYS.reduce<ParsedKey[]>((acc, k) => {
   const parsed = ssh2.utils.parseKey(k)
@@ -27,7 +53,7 @@ const authorizedKeys = AUTHORIZED_KEYS.reduce<ParsedKey[]>((acc, k) => {
   return acc
 }, [])
 
-const serverConfig = { hostKeys: [HOST_KEYS] }
+const serverConfig = { hostKeys: [{ key: HOST_KEYS, passphrase: SSH_PASSPHRASE }] }
 
 // Redbird will generate https certificates on the fly with LetsEncrypt
 const registerConfig =

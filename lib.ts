@@ -1,5 +1,12 @@
+import * as fs from 'fs'
 import * as crypto from 'crypto'
 import { ParsedKey } from 'ssh2-streams'
+import { execSync } from 'child_process'
+import { config as dotenvConfig } from 'dotenv'
+
+dotenvConfig()
+
+const { SSH_PASSPHRASE } = process.env
 
 function validateKey(ctx, authorizedKey: ParsedKey): boolean {
   const allowedPubSSHKey = authorizedKey.getPublicSSH()
@@ -24,4 +31,15 @@ export function findFirstFreeNumber(from: number, used: number[]): number {
     firstFree++
   }
   return firstFree
+}
+
+export function generateSSHKey() {
+  const code = `ssh-keygen -t dsa -f ./ssh/ssh_host_dsa_key -P ${SSH_PASSPHRASE} && ssh-keygen -t rsa -b 4096 -f ./ssh/ssh_host_rsa_key -P ${SSH_PASSPHRASE}`
+  execSync(code)
+}
+
+export function copyFile(filePath: string) {
+  return function() {
+    fs.copyFileSync(`${filePath}.example`, filePath)
+  }
 }
