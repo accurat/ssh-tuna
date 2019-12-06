@@ -13,18 +13,11 @@ interface Config extends ConnectConfig {
   username: string
 }
 
-function noop() {}
-
-export function createClient(
-  config: Config,
-  onReadyCb: Function = noop,
-  onConnectionCb: Function = noop,
-) {
+export function createClient(config: Config) {
   const conn = new Client()
   const errors = []
 
   conn.on('ready', () => {
-    onReadyCb()
     conn.forwardIn(config.dstHost, config.dstPort, (err, port) => {
       if (err) return errors.push(err)
       conn.emit('forward-in', port)
@@ -47,11 +40,6 @@ export function createClient(
     srcSocket.connect(config.srcPort, config.srcHost, () => {
       remote = accept()
       srcSocket.pipe(remote).pipe(srcSocket)
-      if (errors.length === 0) {
-        onConnectionCb(null, conn)
-      } else {
-        onConnectionCb(errors, null)
-      }
     })
   })
   conn.connect(config)

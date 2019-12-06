@@ -2,25 +2,30 @@
   "name": "ssh-tuna",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/client.js",
+  "types": "dist/client.d.ts",
   "keywords": [],
   "author": "",
   "scripts": {
     "watch": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "prepublish": "tsc"
   },
   "license": "ISC",
   "dependencies": {
     "dotenv": "^8.2.0",
-    "got": "^9.6.0",
+    "node-fetch": "^2.6.0",
     "redbird": "^0.9.1",
     "ssh2": "^0.8.6"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "@types/got": "^9.6.9",
     "@types/node": "^12.12.14",
+    "@types/node-fetch": "^2.5.4",
     "@types/ssh2": "^0.5.39",
     "typescript": "^3.7.2"
+  },
+  "engines": {
+    "node": ">=8"
   }
 }

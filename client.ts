@@ -1,59 +1,67 @@
-import * as got from 'got'
+import fetch from 'node-fetch'
 import { createClient } from './reverse-tunnel'
 import { createServer } from 'http'
 
-const {
-  USER,
-  SSH_AUTH_SOCK,
-  SUBDOMAIN = 'maronn',
-  SERVER_PORT = 2005,
-  TUNNEL_DOMAIN = 'internal.accurat.io',
-  SSH_PORT = 2222,
-  ONLY_TUNNEL,
-} = process.env
+const { USER, SSH_AUTH_SOCK } = process.env
 
-const protocol = TUNNEL_DOMAIN === 'localhost' ? 'http' : 'https'
+interface ClientController {
+  close: () => void
+}
 
-export function tunnelPort(localPort: number, subdomain: string) {
-  return got
-    .post(`${protocol}://${TUNNEL_DOMAIN}?subdomain=${subdomain}`, { json: true })
+export function tunnelPort(
+  localPort: number,
+  subdomain: string,
+  tunnelDomain: string,
+  sshPort: number,
+): Promise<ClientController> {
+  if (localPort === undefined) throw new Error('No port given')
+  if (subdomain === undefined) throw new Error('No subdomain given')
+  const protocol = tunnelDomain === 'localhost' ? 'http' : 'https'
+  const url = `${protocol}://${tunnelDomain}?subdomain=${subdomain}`
+  return fetch(url, { method: 'post' })
+    .then(res => res.json())
     .then(res => {
-      const { port, error } = res.body
+      const { port, error } = res
       if (error) throw error
       return port
     })
     .then(dstPort => {
-      return new Promise<string>((resolve, reject) => {
-        return createClient(
-          {
-            host: TUNNEL_DOMAIN,
-            port: Number(SSH_PORT),
-            dstHost: 'localhost',
-            dstPort: dstPort,
-            srcHost: 'localhost',
-            srcPort: localPort,
-            keepAlive: true,
-            agent: SSH_AUTH_SOCK,
-            username: USER,
-          },
-          () => resolve(`${protocol}://${subdomain}.${TUNNEL_DOMAIN}`),
-        )
+      const client = createClient({
+        host: tunnelDomain,
+        port: Number(sshPort),
+        dstHost: 'localhost',
+        dstPort: dstPort,
+        srcHost: 'localhost',
+        srcPort: localPort,
+        keepAlive: true,
+        agent: SSH_AUTH_SOCK,
+        username: USER,
       })
+      return { close: client.destroy }
     })
 }
 
-if (ONLY_TUNNEL) {
-  tunnelPort(Number(SERVER_PORT), SUBDOMAIN).then(url => {
-    console.log(`Also mirrored on ${url}`)
+const {
+  SUBDOMAIN = 'maronn',
+  SERVER_PORT = 2005,
+  TUNNEL_DOMAIN = 'internal.accurat.io',
+  SSH_PORT = 2222,
+  ONLY_TUNNEL = null,
+} = process.env
+
+function run() {
+  tunnelPort(Number(SERVER_PORT), SUBDOMAIN, TUNNEL_DOMAIN, Number(SSH_PORT)).then(client => {
+    const protocol = TUNNEL_DOMAIN === 'localhost' ? 'http' : 'https'
+    const url = `${protocol}://${SUBDOMAIN}.${TUNNEL_DOMAIN}`
+    console.log(`Tunnel opened between port ${SERVER_PORT} and ${url}`)
   })
-} else {
+  if (ONLY_TUNNEL) return
   createServer((req, res) => {
     res.statusCode = 200
     res.end(`Maronn, everything works here at ${SUBDOMAIN}!`)
   }).listen(SERVER_PORT, () => {
     console.log(`Server running on ${SERVER_PORT}`)
-    tunnelPort(Number(SERVER_PORT), SUBDOMAIN).then(url => {
-      console.log(`Also mirrored on ${url}`)
-    })
   })
 }
+
+if (require.main === module) run()

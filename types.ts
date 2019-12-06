@@ -5,4 +5,5 @@ export interface Proxy {
   subdomain: string
   resolver: any
   tunnel: Server | null
+  timeout: NodeJS.Timeout | null
 }
