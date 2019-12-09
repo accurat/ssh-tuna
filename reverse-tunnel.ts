@@ -1,14 +1,6 @@
 import { Socket } from 'net'
 import { Client, ConnectConfig } from 'ssh2'
 
-type Cb = (err: string) => void
-
-export interface ClientController {
-  close: () => void
-  state: 'connected' | 'closed' | 'error'
-  onerror: (cb: Cb) => void
-}
-
 interface Config extends ConnectConfig {
   dstHost: string
   dstPort: number
@@ -21,35 +13,25 @@ interface Config extends ConnectConfig {
   username: string
 }
 
-export function createClient(config: Config) {
+export function createClient(config: Config, connectedCb: Function, errorCb: Function): Client {
   const conn = new Client()
 
-  let errorHandler: Cb = (err: string) => {}
-
-  const client: ClientController = {
-    close: conn.end,
-    state: 'closed',
-    onerror: (cb: Cb) => (errorHandler = cb),
-  }
-
   conn.on('ready', () => {
-    client.state = 'connected'
+    connectedCb(conn)
     conn.forwardIn(config.dstHost, config.dstPort, (err, port) => {
       if (!err) return conn.emit('forward-in', port)
-      console.error(`Error: ${err.message}`)
-      client.state = 'error'
+      errorCb(err)
     })
   })
 
   conn.on('tcp connection', (info, accept, reject) => {
     let remote
     const srcSocket = new Socket()
-    client.state = 'connected'
 
     srcSocket.on('error', err => {
-      client.state = 'error'
       if (remote === undefined) return reject()
       remote.end()
+      errorCb(err)
     })
 
     srcSocket.connect(config.srcPort, config.srcHost, () => {
@@ -59,13 +41,11 @@ export function createClient(config: Config) {
   })
 
   conn.on('error', err => {
-    errorHandler(err.message)
-    const { message } = err
-    console.error('Error: ', message)
     conn.end()
+    errorCb(err)
   })
 
   conn.connect(config)
 
-  return client
+  return conn
 }

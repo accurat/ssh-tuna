@@ -1,8 +1,11 @@
 import fetch from 'node-fetch'
-import { createClient, ClientController } from './reverse-tunnel'
+import { createClient } from './reverse-tunnel'
 import { createServer } from 'http'
-
 const { USER, SSH_AUTH_SOCK } = process.env
+
+interface ClientController {
+  close: () => void
+}
 
 export function tunnelPort(
   localPort: number,
@@ -22,20 +25,26 @@ export function tunnelPort(
       return port
     })
     .then(dstPort => {
-      const client = createClient({
-        host: tunnelDomain,
-        port: Number(sshPort),
-        dstHost: 'localhost',
-        dstPort: dstPort,
-        srcHost: 'localhost',
-        srcPort: localPort,
-        keepAlive: true,
-        agent: SSH_AUTH_SOCK,
-        username: USER,
+      const promise = new Promise<ClientController>((resolve, reject) => {
+        const client = createClient(
+          {
+            host: tunnelDomain,
+            port: Number(sshPort),
+            dstHost: 'localhost',
+            dstPort: dstPort,
+            srcHost: 'localhost',
+            srcPort: localPort,
+            keepAlive: true,
+            agent: SSH_AUTH_SOCK,
+            username: USER,
+          },
+          resolve,
+          reject,
+        )
+        return client
       })
-      return client
+      return promise
     })
-    .catch(error => ({ close: () => {}, state: 'error', onerror: () => {} }))
 }
 
 const {
@@ -47,13 +56,15 @@ const {
 } = process.env
 
 function run() {
-  tunnelPort(Number(SERVER_PORT), SUBDOMAIN, TUNNEL_DOMAIN, Number(SSH_PORT)).then(client => {
-    if (client.state === 'error') return console.error('Could not connect!')
-    client.onerror(err => console.log('err', err))
-    const protocol = TUNNEL_DOMAIN === 'localhost' ? 'http' : 'https'
-    const url = `${protocol}://${SUBDOMAIN}.${TUNNEL_DOMAIN}`
-    console.log(`Tunnel opened between port ${SERVER_PORT} and ${url}`)
-  })
+  tunnelPort(Number(SERVER_PORT), SUBDOMAIN, TUNNEL_DOMAIN, Number(SSH_PORT))
+    .then(client => {
+      const protocol = TUNNEL_DOMAIN === 'localhost' ? 'http' : 'https'
+      const url = `${protocol}://${SUBDOMAIN}.${TUNNEL_DOMAIN}`
+      console.log(`Tunnel opened between port ${SERVER_PORT} and ${url}`)
+    })
+    .catch(err => {
+      console.error('err', err.message)
+    })
   if (ONLY_TUNNEL) return
   createServer((req, res) => {
     res.statusCode = 200

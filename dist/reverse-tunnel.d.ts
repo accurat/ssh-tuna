@@ -1,10 +1,4 @@
-import { ConnectConfig } from 'ssh2';
-declare type Cb = (err: string) => void;
-export interface ClientController {
-    close: () => void;
-    state: 'connected' | 'closed' | 'error';
-    onerror: (cb: Cb) => void;
-}
+import { Client, ConnectConfig } from 'ssh2';
 interface Config extends ConnectConfig {
     dstHost: string;
     dstPort: number;
@@ -16,5 +10,5 @@ interface Config extends ConnectConfig {
     agent: string;
     username: string;
 }
-export declare function createClient(config: Config): ClientController;
+export declare function createClient(config: Config, connectedCb: Function, errorCb: Function): Client;
 export {};
