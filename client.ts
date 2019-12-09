@@ -1,12 +1,8 @@
 import fetch from 'node-fetch'
-import { createClient } from './reverse-tunnel'
+import { createClient, ClientController } from './reverse-tunnel'
 import { createServer } from 'http'
 
 const { USER, SSH_AUTH_SOCK } = process.env
-
-interface ClientController {
-  close: () => void
-}
 
 export function tunnelPort(
   localPort: number,
@@ -37,7 +33,7 @@ export function tunnelPort(
         agent: SSH_AUTH_SOCK,
         username: USER,
       })
-      return { close: client.destroy }
+      return client
     })
 }
 

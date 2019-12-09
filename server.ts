@@ -150,54 +150,57 @@ class Server {
     this.proxies = this.proxies.filter(p => p.port !== proxy.port)
   }
 
-  startSSHServer = () => {
-    this.sshServer = new ssh2.Server(serverConfig, client => {
-      client.on('authentication', ctx => validateSsh(ctx, authorizedKeys))
-      client.on('session', accept => {
-        const session = accept()
-        session.on('shell', accept => accept())
-      })
-      client.on('error', err => console.error(err))
-      client.on('request', (accept, reject, name, info) => {
-        const { bindPort } = info
-        if (name !== 'tcpip-forward') return reject()
-        const existingProxy = this.proxies.find(p => p.port === bindPort)
-        if (!existingProxy) return reject()
-        console.log(`Proxy ${existingProxy.subdomain} opened tunnel!`)
-        accept()
-        clearTimeout(existingProxy.timeout)
-        const server = net
-          .createServer(socket => {
-            socket.setEncoding('utf8')
-            client.forwardOut(
-              'localhost',
-              bindPort,
-              socket.remoteAddress,
-              socket.remotePort,
-              (err, upstream) => {
-                if (err) console.error(err)
-                upstream.pipe(socket).pipe(upstream)
-              },
-            )
-          })
-          .listen(bindPort)
-        existingProxy.tunnel = server
-        client.on('end', () => {
-          server.close()
-          this.killProxy(existingProxy)
-        })
-        client.on('close', () => {
-          server.close()
-          this.killProxy(existingProxy)
-        })
-        client.on('error', () => {
-          server.close()
-          this.killProxy(existingProxy)
-        })
-      })
-    }).listen(Number(SSH_PORT), '0.0.0.0', function() {
-      console.log('Listening on port ' + this.address().port)
+  addSSHListeners = (client: ssh2.Connection) => {
+    client.on('authentication', ctx => validateSsh(ctx, authorizedKeys))
+    client.on('session', accept => {
+      const session = accept()
+      session.on('shell', accept => accept())
     })
+    client.on('error', err => console.error(err))
+    client.on('request', (accept, reject, name, info) => {
+      const { bindPort } = info
+      if (name !== 'tcpip-forward') return reject()
+      const existingProxy = this.proxies.find(p => p.port === bindPort)
+      if (!existingProxy) return reject()
+      console.log(`Proxy ${existingProxy.subdomain} opened tunnel!`)
+      accept()
+      clearTimeout(existingProxy.timeout)
+      const server = net
+        .createServer(socket => {
+          socket.setEncoding('utf8')
+          client.forwardOut(
+            'localhost',
+            bindPort,
+            socket.remoteAddress,
+            socket.remotePort,
+            (err, upstream) => {
+              if (err) console.error(err)
+              upstream.pipe(socket).pipe(upstream)
+            },
+          )
+        })
+        .listen(bindPort)
+      existingProxy.tunnel = server
+      client.on('end', () => {
+        server.close()
+        this.killProxy(existingProxy)
+      })
+      client.on('close', () => {
+        server.close()
+        this.killProxy(existingProxy)
+      })
+      client.on('error', () => {
+        server.close()
+        this.killProxy(existingProxy)
+      })
+    })
+  }
+
+  startSSHServer = () => {
+    this.sshServer = new ssh2.Server(serverConfig, this.addSSHListeners)
+    this.sshServer.listen(Number(SSH_PORT), '0.0.0.0', () =>
+      console.log(`Listening on port ${SSH_PORT}`),
+    )
   }
 }
 

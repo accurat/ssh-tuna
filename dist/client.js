@@ -31,7 +31,7 @@ function tunnelPort(localPort, subdomain, tunnelDomain, sshPort) {
             agent: SSH_AUTH_SOCK,
             username: USER,
         });
-        return { close: client.destroy };
+        return client;
     });
 }
 exports.tunnelPort = tunnelPort;
