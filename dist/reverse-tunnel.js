@@ -4,9 +4,11 @@ const net_1 = require("net");
 const ssh2_1 = require("ssh2");
 function createClient(config) {
     const conn = new ssh2_1.Client();
+    let errorHandler = (err) => { };
     const client = {
         close: conn.end,
         state: 'closed',
+        onerror: (cb) => (errorHandler = cb),
     };
     conn.on('ready', () => {
         client.state = 'connected';
@@ -33,6 +35,7 @@ function createClient(config) {
         });
     });
     conn.on('error', err => {
+        errorHandler(err.message);
         const { message } = err;
         console.error('Error: ', message);
         conn.end();

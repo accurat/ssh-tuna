@@ -1,9 +1,12 @@
 import { Socket } from 'net'
 import { Client, ConnectConfig } from 'ssh2'
 
+type Cb = (err: string) => void
+
 export interface ClientController {
   close: () => void
   state: 'connected' | 'closed' | 'error'
+  onerror: (cb: Cb) => void
 }
 
 interface Config extends ConnectConfig {
@@ -21,9 +24,12 @@ interface Config extends ConnectConfig {
 export function createClient(config: Config) {
   const conn = new Client()
 
+  let errorHandler: Cb = (err: string) => {}
+
   const client: ClientController = {
     close: conn.end,
     state: 'closed',
+    onerror: (cb: Cb) => (errorHandler = cb),
   }
 
   conn.on('ready', () => {
@@ -53,6 +59,7 @@ export function createClient(config: Config) {
   })
 
   conn.on('error', err => {
+    errorHandler(err.message)
     const { message } = err
     console.error('Error: ', message)
     conn.end()

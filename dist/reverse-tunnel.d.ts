@@ -1,7 +1,9 @@
 import { ConnectConfig } from 'ssh2';
+declare type Cb = (err: string) => void;
 export interface ClientController {
     close: () => void;
     state: 'connected' | 'closed' | 'error';
+    onerror: (cb: Cb) => void;
 }
 interface Config extends ConnectConfig {
     dstHost: string;

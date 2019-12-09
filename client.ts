@@ -35,6 +35,7 @@ export function tunnelPort(
       })
       return client
     })
+    .catch(error => ({ close: () => {}, state: 'error', onerror: () => {} }))
 }
 
 const {
@@ -47,6 +48,8 @@ const {
 
 function run() {
   tunnelPort(Number(SERVER_PORT), SUBDOMAIN, TUNNEL_DOMAIN, Number(SSH_PORT)).then(client => {
+    if (client.state === 'error') return console.error('Could not connect!')
+    client.onerror(err => console.log('err', err))
     const protocol = TUNNEL_DOMAIN === 'localhost' ? 'http' : 'https'
     const url = `${protocol}://${SUBDOMAIN}.${TUNNEL_DOMAIN}`
     console.log(`Tunnel opened between port ${SERVER_PORT} and ${url}`)
@@ -56,7 +59,7 @@ function run() {
     res.statusCode = 200
     res.end(`Maronn, everything works here at ${SUBDOMAIN}!`)
   }).listen(SERVER_PORT, () => {
-    console.log(`Server running on ${SERVER_PORT}`)
+    console.log(`HTTP Server running on ${SERVER_PORT}`)
   })
 }
 
