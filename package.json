@@ -16,7 +16,7 @@
     "dotenv": "^8.2.0",
     "node-fetch": "^2.6.0",
     "redbird": "^0.9.1",
-    "ssh2": "^0.8.6"
+    "ssh2": "^1.4.0"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
